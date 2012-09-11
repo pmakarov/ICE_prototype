@@ -1,7 +1,8 @@
-package com.ICE.components
+package com.ICE
 {
 	import com.ICE.utils.FlashVarUtil;
 	import com.ICE.utils.VideoXMLLoader;
+	import fl.video.CaptionTargetEvent;
 	import fl.video.FLVPlayback;
 	import fl.video.FLVPlaybackCaptioning;
 	import fl.video.MetadataEvent;
@@ -26,7 +27,6 @@ package com.ICE.components
 	import flash.text.TextFormat;
 	import flash.ui.Mouse;
 	import flash.utils.Timer;
-	import fl.video.CaptionTargetEvent;
 
 	/**
 	 * ...
@@ -87,6 +87,7 @@ package com.ICE.components
 			removeEventListener(Event.ADDED_TO_STAGE, initLoop);
 			this.addEventListener(Event.ENTER_FRAME, checkStage);
 		}
+		
 		private function checkStage(e:Event):void 
 		{
 			//trace(stage.width + " : " + stage.stageWidth);
@@ -135,8 +136,9 @@ package com.ICE.components
 			videoPlayBack = new FLVPlayback();
 			videoPlayBack.autoPlay = false;
 			videoPlayBack.scaleMode = "maintainAspectRatio";
-			videoPlayBack.fullScreenTakeOver = false;
 			//videoPlayBack.scaleMode = "exactFit";
+			videoPlayBack.fullScreenTakeOver = false;
+			
 			
 			//videoContainer.addEventListener(MouseEvent.ROLL_OVER, handleVideoRollOver);
 			//videoContainer.addEventListener(MouseEvent.ROLL_OUT, handleVideoRollOut);
@@ -188,7 +190,13 @@ package com.ICE.components
 		}
 		private function resizeListener(e:Event):void
 		{
-			/*trace("stageWidth: " + stage.stageWidth + " stageHeight: " + stage.stageHeight + " : " + stage.displayState);
+			//trace("stageWidth: " + stage.stageWidth + " stageHeight: " + stage.stageHeight + " : " + stage.displayState);
+			
+			vidWidth = stage.stageWidth;
+			var mediaBG:MovieClip = videoControlsContainer.getChildByName("mediaBG") as MovieClip; 
+			var pbBG:MovieClip = videoControlsContainer.getChildByName("pbBG") as MovieClip;
+			var pbar:MovieClip = videoControlsContainer.getChildByName("progressBar") as MovieClip;
+			var scb:MovieClip = videoControlsContainer.getChildByName("progressScrubber") as MovieClip;
 			
 			
 			if(stage.displayState == StageDisplayState.FULL_SCREEN)
@@ -196,33 +204,33 @@ package com.ICE.components
 				// Proportionally resize your video to the stage's new dimensions
 				// i.e. set its height and width such that the aspect ratio is not distorted
 				trace("go to full screen mode");
-				
-				
+				videoPlayBack.width = vidWidth;
+				videoPlayBack.height = stage.stageHeight - 30;
+				//videoControlsContainer.y = stage.stageHeight - 34;
+				videoControlsContainer.y = 0;
+				mediaBG.y =  videoPlayBack.y + videoPlayBack.height;
+				//mediaBG.y =  stage.stageHeight - mediaBG.height;
+				mediaBG.width = stage.stageWidth;
+				pbBG.width = stage.stageWidth;
+				pbar.width = (stage.stageWidth) * (videoPlayBack.playheadPercentage / 100);
+				scb.x = pbar.x + videoPlayBack.playheadTime * stage.stageWidth / videoPlayBack.totalTime - 8;
 			}
 			else
 			{
 				trace(" in normal mode");
+				videoPlayBack.width = vidWidth;
+				videoPlayBack.height = stage.stageHeight - 30;
+				//videoControlsContainer.y = stage.stageHeight - 34;
+				videoControlsContainer.y = 0;
 				
-			}*/
+				mediaBG.y =  videoPlayBack.y + videoPlayBack.height;
+				//mediaBG.y =  stage.stageHeight - mediaBG.height;
+				mediaBG.width = stage.stageWidth;
+				pbBG.width = stage.stageWidth;
+				pbar.width = (stage.stageWidth) * (videoPlayBack.playheadPercentage / 100);
+				scb.x = pbar.x + videoPlayBack.playheadTime * stage.stageWidth / videoPlayBack.totalTime - 8;
 			
-			/*vidWidth = stage.stageWidth;
-			videoPlayBack.width = vidWidth;
-			videoPlayBack.height = stage.stageHeight - 30;
-			videoControlsContainer.y = stage.stageHeight - 34;
-			videoPlayBack.visible = false;
-			*/
-			var mediaBG:MovieClip = videoControlsContainer.getChildByName("mediaBG") as MovieClip; 
-			//mediaBG.y = stage.stageHeight - mediaBG.height;
-			mediaBG.width = stage.stageWidth;
-			
-			var pbBG:MovieClip = videoControlsContainer.getChildByName("pbBG") as MovieClip;
-			pbBG.width = stage.stageWidth;
-			
-			var pbar:MovieClip = videoControlsContainer.getChildByName("progressBar") as MovieClip;
-			pbar.width = (stage.stageWidth) * (videoPlayBack.playheadPercentage / 100);
-			
-			var scb:MovieClip = videoControlsContainer.getChildByName("progressScrubber") as MovieClip;
-			scb.x = pbar.x + videoPlayBack.playheadTime * vidWidth / videoPlayBack.totalTime - 8;
+			}
 			
 		}
 		private function captionTargetCreatedHandler(e:CaptionTargetEvent):void
@@ -294,7 +302,7 @@ package com.ICE.components
 				//videoPath = "http://www.helpexamples.com/flash/video/caption_video.flv";
 				//videoPath = "video/runSKELITOR_rgb_9_1.f4v";
 				my_FLVPlybkcap.source = "data/xml/caption_video.xml";
-				videoPath = "assets/media/video/default.f4v";
+				videoPath = "http://www.helpexamples.com/flash/video/caption_video.flv";
 			}
 		}
 		
@@ -306,7 +314,7 @@ package com.ICE.components
 			videoControlsContainer.addChild(hArea);
 			hArea.graphics.beginFill(0x0000FF);
 			hArea.alpha = 0;
-			hArea.graphics.drawRect(0,0, vidWidth ,vidWidth);
+			hArea.graphics.drawRect(0,0, vidWidth ,vidHeight);
 			hArea.graphics.endFill();
 			hArea.x = stage.stageWidth/2-hArea.width/2;
 			hArea.y = stage.stageHeight/2-hArea.height/2;
