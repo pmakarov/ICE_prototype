@@ -7,7 +7,7 @@ package com.ICE
 	 * ...
 	 * @author Paul Makarov
 	 */
-	public class  myPRIMECuePoint extends EventDispatcher
+	public class  ICECuePoint extends EventDispatcher
 	{
 		public var time:Number = 0;
 		public var type:String = "";
@@ -17,7 +17,8 @@ package com.ICE
 		public var savePoint:Boolean;
 		public var spRef:MovieClip;
 		public var complete:Boolean = false;
-		public function myPRIMECuePoint(xml:XML = null):void
+		
+		public function ICECuePoint(xml:XML = null):void
 		{
 			time = xml.@time;
 			id = xml.@id;

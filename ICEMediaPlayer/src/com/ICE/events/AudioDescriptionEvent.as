@@ -1,4 +1,4 @@
-package com.ICE
+package com.ICE.events
 {
 	import flash.events.Event;
 	

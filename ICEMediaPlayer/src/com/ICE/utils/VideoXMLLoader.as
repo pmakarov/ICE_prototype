@@ -1,6 +1,6 @@
 package com.ICE.utils 
 {
-	import com.ICE.myPRIMECuePoint;
+	import com.ICE.ICECuePoint;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.net.URLLoader;
@@ -36,7 +36,7 @@ package com.ICE.utils
 			for each (var cues:XML in xml..cuePoint)
 			{
 				
-				steps.push( new myPRIMECuePoint(cues));
+				steps.push( new ICECuePoint(cues));
 				if (steps[steps.length - 1].savePoint)
 				{
 					totalSavePoints++;
