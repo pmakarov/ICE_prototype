@@ -20,6 +20,7 @@ package com.ICE
 	import flash.events.MouseEvent;
 	import flash.events.TimerEvent;
 	import flash.geom.Rectangle;
+	import flash.media.Sound;
 	import flash.net.*;
 	import flash.text.GridFitType;
 	import flash.text.TextField;
@@ -66,9 +67,17 @@ package com.ICE
 		private var vidHeight:Number = 390;
 		private var autorun:Boolean = true;
 		private var showcaptions:Boolean = false;
+		private var showDescriptions:Boolean = false;
 		private var captionButton:closedCaptioning;
+		private var audioDescription:AudioDescription;
 		private var loadingScreen:loadingBlue;
 		private var fs:fullScreenButton;
+		private var timeText_mc:TextField;
+		private var audioDescriptionURL:String;
+		private var capBox:captionBox;
+		private var captionText:TextField;
+		public var caption:String;
+		public var captionURL:String;
 
 		
 		[SWF(width="640", height="390", frameRate="60", backgroundColor="#000000")]
@@ -116,6 +125,7 @@ package com.ICE
 			
 			
 			my_FLVPlybkcap = new FLVPlaybackCaptioning(); 
+			my_FLVPlybkcap.showCaptions = false;
 			
 			parseFlashVars();
 			videoContainer = new Sprite();
@@ -151,18 +161,21 @@ package com.ICE
 
 			//videoPlayBack.addEventListener(MouseEvent.CLICK, onClick);
 
-		
+	
 			videoContainer.name = "container";
 			addChild(videoContainer);
 			
+			
+			//this.addEventListener("CUE_COMPLETE", cueCompleteHandler);
 			videoPlayBack.source = videoPath;	
 			videoPlayBack.addEventListener(MetadataEvent.METADATA_RECEIVED, metadataReceived);
+			videoPlayBack.addEventListener( MetadataEvent.CUE_POINT, doCuePoint);	
 			videoPlayBack.addEventListener(VideoEvent.STATE_CHANGE, videoStateHandler);
 			videoPlayBack.addEventListener(VideoEvent.PLAYHEAD_UPDATE, progressHandler);
 			videoPlayBack.addEventListener(VideoEvent.COMPLETE, handleVideoComplete); 
 			
 			videoContainer.addChild(videoPlayBack);
-			videoContainer.addChild (my_FLVPlybkcap); 
+			videoContainer.addChild(my_FLVPlybkcap);
 			my_FLVPlybkcap.addEventListener(CaptionTargetEvent.CAPTION_TARGET_CREATED, captionTargetCreatedHandler);
 			
 			
@@ -173,10 +186,11 @@ package com.ICE
 			
 			tmrDisplay = new Timer(DISPLAY_TIMER_UPDATE_DELAY);
 			tmrDisplay.addEventListener(TimerEvent.TIMER, updateDisplay);
-			myTimer = new Timer(3000, 1);
+			myTimer = new Timer(3000,1);
 			//myTimer.addEventListener(TimerEvent.TIMER_COMPLETE, timerHandler);
 			
 			setVolume(1);
+			
 			//
 			if (autorun == true)
 			{
@@ -187,6 +201,102 @@ package com.ICE
 				togglePlayPauseButton(new MouseEvent(MouseEvent.CLICK));
 			}
 			
+		}
+		public function addCuePoints(videoXML:VideoXMLLoader):void
+		{
+			cuePoints = videoXML.getCuePoints();
+			savePoints = new Array();
+			for (var i:uint = 0; i < cuePoints.length; i++)
+			{
+				videoPlayBack.addASCuePoint(convertStringToTime(cuePoints[i].begin), "cuePoint_" + i, cuePoints[i].getActions());			
+			}
+			
+			dispatchEvent(new Event("CUE_COMPLETE"));
+		}
+		public function doCuePoint(evt:MetadataEvent):void 
+		{
+			//trace(evt.info.name + " : " + evt.info.dur + " : " + evt.info.parameters);
+			for (var i:* in evt.info.parameters)
+			{
+				//trace(i);
+				if (evt.info.name != "fl.video.caption.2.0.1")
+				{
+					//evt.info.parameters.dur = 2000;
+					handleSceneActions(evt.info.parameters[i]);
+				}
+			}
+		/*	if (cueCount < savePoints.length-1)
+			{
+				cueCount++;
+			}*/
+		}
+		private function handleSceneActions(command:Object):void 
+		{
+			
+			//trace("TYPE: " + command.type);
+			
+			if (typeof(command) != "string" && typeof(command) != "number")
+			{
+			switch(command.type)
+			{
+				case "caption":
+					if (showDescriptions)
+					{
+						var capTimer:Timer = new Timer(convertStringToTime(command.dur) * 1000, 1);
+						capTimer.start();
+						capTimer.addEventListener(TimerEvent.TIMER_COMPLETE, capTimeHandler);
+						captionText.appendText(command.data + "\n");
+						captionURL = captionText.text;
+						if (command.src != "")
+						{
+							var mySound:Sound = new Sound();
+							mySound.load(new URLRequest(command.src));
+							mySound.play();
+						}
+					}
+				
+				break;
+				
+				case "display":
+				//trace("DO DISPLAY ACTION \n" + command.data + " : " + command.interrupt);
+				if (command.interrupt == "true")
+				{
+					
+					togglePlayPauseButton(new MouseEvent(MouseEvent.CLICK));
+				}
+				
+			//	var l:URLLoader = new URLLoader();
+				//l.load(new URLRequest(command.data));
+				//addChild(l);
+				//addEventListener("EVALUATE_ASSET", doStuff);
+				break;
+				
+				case "save":
+				//trace("save point time: " + videoPlayBack.playheadTime + " listed in cue point " + cuePoints[cueCount].id);
+				//activateSavePoint();
+				break;
+				
+				case "system":
+				trace("DO SYSTEM CALL \n" + command.data);
+				togglePlayPauseButton(new MouseEvent(MouseEvent.CLICK));
+				
+				break;
+				
+				default:
+				break;
+			}
+			}
+		}
+		public function capTimeHandler(e:TimerEvent):void
+		{
+			//trace("removing " + captionURL + " from " +captionText.text );
+			captionText.htmlText = captionText.text.split(captionURL).join("");
+			//captionText.htmlText = "";
+		}
+		public function doStuff(e:Event):void
+		{
+			e.target.visible = false;
+			togglePlayPauseButton(new MouseEvent(MouseEvent.CLICK));
 		}
 		private function resizeListener(e:Event):void
 		{
@@ -214,6 +324,31 @@ package com.ICE
 				pbBG.width = stage.stageWidth;
 				pbar.width = (stage.stageWidth) * (videoPlayBack.playheadPercentage / 100);
 				scb.x = pbar.x + videoPlayBack.playheadTime * stage.stageWidth / videoPlayBack.totalTime - 8;
+				if (my_FLVPlybkcap.source!= "" && my_FLVPlybkcap.showCaptions)
+				{
+					var myTextFormat:TextFormat = new TextFormat();
+					myTextFormat.font = "Arial";
+					myTextFormat.color = 0xDDFFEE;
+					myTextFormat.size = 32;
+					if (my_FLVPlybkcap.captionTarget)
+					{
+						TextField(my_FLVPlybkcap.captionTarget).defaultTextFormat = myTextFormat; 
+					}
+				}
+				
+				if (audioDescriptionURL!= "" && capBox)
+				{
+					var myTextFormat2:TextFormat = new TextFormat();
+					myTextFormat2.font = "Arial";
+					myTextFormat2.color = 0xDDFFEE;
+					myTextFormat2.size = 32;
+					if (captionText)
+					{
+						capBox.visible = false;
+						captionText.defaultTextFormat = myTextFormat2; 
+					}
+					
+				}
 			}
 			else
 			{
@@ -229,7 +364,55 @@ package com.ICE
 				pbBG.width = stage.stageWidth;
 				pbar.width = (stage.stageWidth) * (videoPlayBack.playheadPercentage / 100);
 				scb.x = pbar.x + videoPlayBack.playheadTime * stage.stageWidth / videoPlayBack.totalTime - 8;
+				if (my_FLVPlybkcap.source!= "" && my_FLVPlybkcap.showCaptions)
+				{
+					var myTextFormat3:TextFormat = new TextFormat();
+					myTextFormat3.font = "Arial";
+					myTextFormat3.color = 0xDDFFEE;
+					myTextFormat3.size = 18;
+					if (my_FLVPlybkcap.captionTarget)
+					{
+						TextField(my_FLVPlybkcap.captionTarget).defaultTextFormat = myTextFormat3; 
+					}
+				}
+				
+				if (audioDescriptionURL!= "" && capBox)
+				{
+					var myTextFormat4:TextFormat = new TextFormat();
+					myTextFormat4.font = "Arial";
+					myTextFormat4.color = 0xDDFFEE;
+					myTextFormat4.size = 18;
+					if (captionText)
+					{
+						captionText.defaultTextFormat = myTextFormat4; 
+					}
+					
+				}
+				
 			
+			}
+			playPause.y = mediaBG.y + (mediaBG.height - playPause.height) / 2;
+			vol.x = playPause.x + playPause.width;
+			vol.y = playPause.y;
+			fs.y = playPause.y;
+			fs.x = vidWidth - fs.width;
+			pbBG.y = mediaBG.y  - pbBG.height + 3;
+			pb.x = -6;
+			pb.y = mediaBG.y - pbBG.height + 4;
+			scrubber.x = pb.x + 5;
+			scrubber.y = pb.y - 2;
+			timeText_mc.x = vol.x + vol.width + 6;
+			timeText_mc.y = mediaBG.y + timeText_mc.height / 2 - 2;
+			
+			if (captionButton)
+			{
+				captionButton.y = playPause.y;
+				captionButton.x = fs.x - captionButton.width;
+			}
+			if (audioDescription)
+			{
+				audioDescription.y = playPause.y;
+				audioDescription.x = captionButton.x - audioDescription.width;
 			}
 			
 		}
@@ -240,6 +423,8 @@ package com.ICE
 			myTextFormat.color = 0xDDFFEE;
 			myTextFormat.size = 18;
 			(e.captionTarget as TextField).defaultTextFormat = myTextFormat; 	
+			//my_FLVPlybkcap.showCaptions = showcaptions;
+			//trace("creating caption target: " + my_FLVPlybkcap.showCaptions);
 		}
 		private function parseFlashVars():void
 		{
@@ -270,10 +455,10 @@ package com.ICE
 					videoPath = FlashVarUtil.getValue("src");
 					//tf.appendText("target source:" + videoPath + "\n");
 				}
-				if (FlashVarUtil.hasKey("data"))
+				if (FlashVarUtil.hasKey("closedCaptions"))
 				{
 					//trace( FlashVarUtil.getValue("data"));
-					my_FLVPlybkcap.source = FlashVarUtil.getValue("data");
+					my_FLVPlybkcap.source = FlashVarUtil.getValue("closedCaptions");
 					
 				}
 				if (FlashVarUtil.hasKey("width"))
@@ -290,11 +475,15 @@ package com.ICE
 					autorun = FlashVarUtil.getValue("autorun") == "true" ? true : false;
 					trace(autorun);
 				}
-				if (FlashVarUtil.hasKey("showcaptions") && FlashVarUtil.hasKey("data"))
+				if (FlashVarUtil.hasKey("showcaptions") && FlashVarUtil.hasKey("closedCaptions"))
 				{
 					//tf.appendText("target data:" +  FlashVarUtil.getValue("showcaptions") + "\n");
 					showcaptions  = FlashVarUtil.getValue("showcaptions") == "true" ? true : false;
-					my_FLVPlybkcap.showCaptions = showcaptions;
+					//my_FLVPlybkcap.showCaptions = showcaptions;
+				}
+				if (FlashVarUtil.hasKey("showcaptions") && FlashVarUtil.hasKey("audioDescriptions"))
+				{
+					audioDescriptionURL = FlashVarUtil.getValue("audioDescriptions");
 				}
 			}
 			else 
@@ -303,6 +492,10 @@ package com.ICE
 				//videoPath = "video/runSKELITOR_rgb_9_1.f4v";
 				my_FLVPlybkcap.source = "data/xml/caption_video.xml";
 				videoPath = "http://www.helpexamples.com/flash/video/caption_video.flv";
+				my_FLVPlybkcap.showCaptions = false;
+				audioDescriptionURL = "data/xml/step_1.xml";
+				showDescriptions = true;
+				
 			}
 		}
 		
@@ -365,6 +558,8 @@ package com.ICE
 			fs = new fullScreenButton();
 			fs.y = playPause.y;
 			fs.x = vidWidth - fs.width;
+			fs.buttonMode = true;
+			
 			videoControlsContainer.addChild(fs);
 			fs.addEventListener(MouseEvent.CLICK, toggleFullScreen);
 			videoPlayBack.fullScreenButton = fs;
@@ -380,11 +575,76 @@ package com.ICE
 				videoControlsContainer.addChild(captionButton);
 				captionButton.ccOff.addEventListener(MouseEvent.CLICK, toggleCaptioning);
 				captionButton.ccOn.addEventListener(MouseEvent.CLICK, toggleCaptioning);
-				my_FLVPlybkcap.showCaptions = false;
+				//my_FLVPlybkcap.showCaptions = false;
 				if (showcaptions == true)
 				{
+					trace("here");
 					toggleCaptioning(new MouseEvent(MouseEvent.CLICK));
+					//my_FLVPlybkcap.showCaptions = true;
 				}
+				
+			}
+			
+			if (audioDescriptionURL != "")
+			{
+				audioDescription = new AudioDescription();
+				audioDescription.adOn.buttonMode = true;
+				audioDescription.adOff.buttonMode = true;
+				audioDescription.adOff.visible = false;
+				audioDescription.y = playPause.y;
+				audioDescription.x = captionButton.x- captionButton.width;
+				videoControlsContainer.addChild(audioDescription);
+				audioDescription.adOn.addEventListener(MouseEvent.CLICK, toggleAudioDescription);
+				audioDescription.adOff.addEventListener(MouseEvent.CLICK, toggleAudioDescription);
+				
+				
+				capBox = new captionBox();
+				//capBox.width = 1018;
+				capBox.y = videoContainer.y;
+				capBox.width = stage.stageWidth - 40;
+				capBox.x = 20;
+				
+				
+				var format2:TextFormat = new TextFormat();
+				format2.font = "Arial";
+				format2.color = 0xFFFFFF;
+				format2.size = 18;
+				format2.align = "left";
+				//format.bold = true;
+							
+				captionText = new TextField();
+				captionText.autoSize = TextFieldAutoSize.LEFT;
+				captionText.text = "";
+				captionText.background = true; //use true for doing generic labels
+				captionText.backgroundColor = 0x000000;
+				captionText.border = true;      // ** same
+				captionText.multiline = true;
+				captionText.antiAliasType = "advanced";
+				captionText.gridFitType = GridFitType.NONE;
+				captionText.sharpness = -200;
+				captionText.wordWrap = true;
+				captionText.defaultTextFormat = format2;			
+				captionText.x = capBox.x + 8
+				captionText.y = 0;
+				captionText.width = capBox.width - 20;
+				captionText.htmlText = "";
+				captionText.name = "captionText";
+				captionText.tabEnabled = true;
+				capBox.addChild(captionText);
+				//capBox.height = captionText.height;
+				capBox.visible = captionText.visible = true;
+				videoContainer.addChild(capBox);
+				videoContainer.addChild(captionText);
+				
+				videoXML = new VideoXMLLoader(audioDescriptionURL);
+				videoXML.addEventListener(Event.COMPLETE, handleVideoCuePoints);	
+				
+				if (showDescriptions == true)
+				{
+					toggleAudioDescription(new MouseEvent(MouseEvent.CLICK));
+					//my_FLVPlybkcap.showCaptions = true;
+				}
+				
 			}
 			
 			
@@ -406,7 +666,7 @@ package com.ICE
 			pb.height = 4;
 			pb.width = 0;
 			pb.alpha = .5;
-			pb.x = -6;
+			pb.x = 0;
 			pb.y = mediaBG.y - pbBG.height + 4;
 			pb.name = "progressBar";
 			videoControlsContainer.addChild(pb);
@@ -429,7 +689,7 @@ package com.ICE
             format.size = 12;
 			format.bold = false;
 						
-			var timeText_mc:TextField = new TextField();
+			timeText_mc = new TextField();
 			timeText_mc.autoSize = TextFieldAutoSize.LEFT;
             timeText_mc.background = false; //use true for doing generic labels
             timeText_mc.border = false;      // ** same
@@ -474,7 +734,6 @@ package com.ICE
 			//showcaptions = true;
 			//my_FLVPlybkcap.source = "data/xml/caption_video.xml";
 			
-
 			
 			videoContainer.addChild(videoControlsContainer);
 			videoControlsContainer.x = 0;
@@ -482,6 +741,51 @@ package com.ICE
 			//videoControlsContainer.width = 400;
 			//videoControlsContainer.visible = false;
 			//videoControlsContainer.alpha = 0;			
+			
+			
+		}
+		
+		public function handleVideoCuePoints(e:Event):void
+		{
+			if (videoXML.getCuePoints().length > 0)
+			{
+				addCuePoints(videoXML);
+			}
+		}
+		public function toggleAudioDescription(e:MouseEvent):void
+		{
+			if (audioDescription.adOff.visible)
+			{
+				trace("toggle ad off");
+				audioDescription.adOff.visible = false;
+				audioDescription.adOn.visible = true;
+				showDescriptions = false;
+				capBox.visible = captionText.visible = false;
+			}
+			else
+			{
+				audioDescription.adOn.visible = false;
+				audioDescription.adOff.visible = true;
+				showDescriptions = true;
+				capBox.visible = captionText.visible = true;
+
+				if (stage.displayState == StageDisplayState.NORMAL && capBox )
+				{
+					var myTextFormat2:TextFormat = new TextFormat();
+					myTextFormat2.font = "Arial";
+					myTextFormat2.color = 0xDDFFEE;
+					myTextFormat2.size = 18;
+					captionText.defaultTextFormat = myTextFormat2; 
+				}
+				else if(stage.displayState == StageDisplayState.FULL_SCREEN && capBox )
+				{
+					var myTextFormat:TextFormat = new TextFormat();
+					myTextFormat.font = "Arial";
+					myTextFormat.color = 0xDDFFEE;
+					myTextFormat.size = 32;
+					captionText.defaultTextFormat = myTextFormat; 
+				}
+			}
 		}
 		public function toggleFullScreen(e:MouseEvent):void
 		{
@@ -503,13 +807,33 @@ package com.ICE
 				captionButton.ccOff.visible = false;
 				captionButton.ccOn.visible = true;
 				my_FLVPlybkcap.showCaptions = false;
-
+				showcaptions = false;
+				trace(my_FLVPlybkcap.showCaptions + " : ?");
+				
 			}
 			else
 			{
 				captionButton.ccOn.visible = false;
 				captionButton.ccOff.visible = true;
 				my_FLVPlybkcap.showCaptions = true;
+				showcaptions = true;
+
+				if (stage.displayState == StageDisplayState.NORMAL && my_FLVPlybkcap.captionTarget )
+				{
+					var myTextFormat2:TextFormat = new TextFormat();
+					myTextFormat2.font = "Arial";
+					myTextFormat2.color = 0xDDFFEE;
+					myTextFormat2.size = 18;
+					TextField(my_FLVPlybkcap.captionTarget).defaultTextFormat = myTextFormat2; 
+				}
+				else if(stage.displayState == StageDisplayState.FULL_SCREEN && my_FLVPlybkcap.captionTarget )
+				{
+					var myTextFormat:TextFormat = new TextFormat();
+					myTextFormat.font = "Arial";
+					myTextFormat.color = 0xDDFFEE;
+					myTextFormat.size = 32;
+					TextField(my_FLVPlybkcap.captionTarget).defaultTextFormat = myTextFormat; 
+				}
 			}
 		}
 		public function toggleMute (e:MouseEvent):void
@@ -594,6 +918,7 @@ package com.ICE
 						playPause.pb.visible = true;
 						playPause.playb.visible = false;
 						my_FLVPlybkcap.showCaptions = showcaptions;
+						//trace(my_FLVPlybkcap.showCaptions + " : " + showcaptions);
 						break;
 						
 					case "paused":
@@ -624,10 +949,14 @@ package com.ICE
 				playPause.playb.visible = false;
 				videoPlayBack.play();
 			}
+			trace(my_FLVPlybkcap.showCaptions);
 		}
 		public function progressHandler(e:VideoEvent):void 
 		{
+			//trace(videoPlayBack.playheadTime);
 			time = formatTime(videoPlayBack.playheadTime) + " / " + formatTime(videoPlayBack.totalTime);
+			
+			
 			var format:TextFormat = new TextFormat();
 			format.font = "Arial";
 			format.color = 0xABABAB;
@@ -718,11 +1047,14 @@ package com.ICE
 		
 		private function handleVideoComplete(e:VideoEvent):void
 		{
-			//trace("video complete: " + videoPlayBack.playheadPercentage);
+			trace("video complete: " + videoPlayBack.playheadPercentage);
 			
 			videoPlayBack.autoRewind = true;
 			//add code to put back up the Play icon
 			togglePlayPauseButton(new MouseEvent(MouseEvent.CLICK));
+			pb.x = 8;
+			scrubber.x = pb.x + videoPlayBack.playheadTime * vidWidth / videoPlayBack.totalTime - 8;
+			
 		}
 		
 		
@@ -794,10 +1126,14 @@ package com.ICE
 		}
 		public function formatTime(t:int):String 
 		{
+			
 			// returns the minutes and seconds with leading zeros
 			// for example: 70 returns 01:10
 			var s:int = Math.round(t);
 			var m:int = 0;
+			//Not doing millieseconds yet...
+			//var ml:String = (videoPlayBack.playheadTime - s).toFixed(2);
+			
 			if (s > 0) 
 			{
 				while (s > 59) 
@@ -811,6 +1147,32 @@ package com.ICE
 			{
 				return "00:00";
 			}
+		}
+		public function convertStringToTime(str:String):Number
+		{
+			
+			var tmp:Array = str.split(":");
+			var hours:Number = Number(tmp[0]);
+			var minutes:Number = Number(tmp[1]);
+			var seconds:Number = Number(tmp[2]);
+			//handle secs over 59
+			while (seconds > 59) 
+			{
+				minutes++;
+				seconds -= 60;
+				
+			}
+			//handle mins over 59
+			while (minutes > 59)
+			{
+					hours++;
+					minutes-=60;
+			}
+			//trace(hours + " : " + minutes + " : " + seconds);
+			// 1 hour = 3,600,600 ms
+			// 1 minute = 60,000 ms
+			var totalTime:Number = (hours * 3600) + ( minutes * 60) +  seconds; 
+			return totalTime;
 		}
 		public function updateDisplay(e:TimerEvent):void 
 		{

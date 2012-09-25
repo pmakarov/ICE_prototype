@@ -13,6 +13,8 @@ package com.ICE
 		public var type:String = "";
 		public var interrupt:Boolean = false;
 		public var id:String = "";
+		public var begin:String = "";
+		public var dur:String = "";
 		public var actions:Array = new Array();
 		public var savePoint:Boolean;
 		public var spRef:MovieClip;
@@ -23,6 +25,8 @@ package com.ICE
 			time = xml.@time;
 			id = xml.@id;
 			type = xml.@type;
+			dur = xml.@dur;
+			begin = xml.@begin;
 			
 			
 			for each ( var command:XML in xml..action )
@@ -30,11 +34,13 @@ package com.ICE
 				var tmp:Object = new Object();
 				tmp.type = command.@type.toString();
 				tmp.interrupt = command.@interrupt;
+				tmp.src = command.@src;
 				if (tmp.type == "save")
 				{
 					savePoint = true;
 				}
 				tmp.data = command.toString();
+				tmp.dur = dur;
 				actions.push(tmp);
 			}
 		}

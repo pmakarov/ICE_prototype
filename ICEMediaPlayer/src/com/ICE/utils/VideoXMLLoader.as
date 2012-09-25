@@ -15,6 +15,7 @@ package com.ICE.utils
 		protected var url:String;
 		protected var caption:String;
 		protected var captionText:String;
+		protected var audioDescriptionText:String;
 		
 		public function VideoXMLLoader(url:String) 
 		{
@@ -33,9 +34,9 @@ package com.ICE.utils
 			this.url = xml.element.file.@src.toString();
 			this.caption = xml.element.caption.@src.toString();
 			this.captionText = xml.element.caption.toString();
+			this.audioDescriptionText = xml.element.audioDescriptionText.toString();
 			for each (var cues:XML in xml..cuePoint)
 			{
-				
 				steps.push( new ICECuePoint(cues));
 				if (steps[steps.length - 1].savePoint)
 				{
@@ -55,6 +56,8 @@ package com.ICE.utils
 		public function getCaptionURL():String { return caption; }
 		
 		public function getCaption():String { return captionText; }
+		
+		public function getAudioDescriptionURL():String { return audioDescriptionText;}
 		
 		
 	}
