@@ -73,7 +73,7 @@ package com.ICE
 		private var loadingScreen:loadingBlue;
 		private var fs:fullScreenButton;
 		private var timeText_mc:TextField;
-		private var audioDescriptionURL:String;
+		private var audioDescriptionURL:String = "";
 		private var capBox:captionBox;
 		private var captionText:TextField;
 		public var caption:String;
@@ -247,6 +247,7 @@ package com.ICE
 						capTimer.addEventListener(TimerEvent.TIMER_COMPLETE, capTimeHandler);
 						captionText.appendText(command.data + "\n");
 						captionURL = captionText.text;
+						captionText.background = true;
 						if (command.src != "")
 						{
 							var mySound:Sound = new Sound();
@@ -291,6 +292,7 @@ package com.ICE
 		{
 			//trace("removing " + captionURL + " from " +captionText.text );
 			captionText.htmlText = captionText.text.split(captionURL).join("");
+			captionText.background = false;
 			//captionText.htmlText = "";
 		}
 		public function doStuff(e:Event):void
@@ -346,6 +348,7 @@ package com.ICE
 					{
 						capBox.visible = false;
 						captionText.defaultTextFormat = myTextFormat2; 
+						capBox.x = videoContainer.y + 20;
 					}
 					
 				}
@@ -386,7 +389,7 @@ package com.ICE
 					{
 						captionText.defaultTextFormat = myTextFormat4; 
 					}
-					
+					capBox.x = 20;
 				}
 				
 			
@@ -587,6 +590,7 @@ package com.ICE
 			
 			if (audioDescriptionURL != "")
 			{
+				trace(audioDescriptionURL);
 				audioDescription = new AudioDescription();
 				audioDescription.adOn.buttonMode = true;
 				audioDescription.adOff.buttonMode = true;
@@ -603,7 +607,7 @@ package com.ICE
 				capBox.y = videoContainer.y;
 				capBox.width = stage.stageWidth - 40;
 				capBox.x = 20;
-				
+				capBox.bg.alpha = 0;
 				
 				var format2:TextFormat = new TextFormat();
 				format2.font = "Arial";
@@ -617,7 +621,7 @@ package com.ICE
 				captionText.text = "";
 				captionText.background = true; //use true for doing generic labels
 				captionText.backgroundColor = 0x000000;
-				captionText.border = true;      // ** same
+				captionText.border = false;      // ** same
 				captionText.multiline = true;
 				captionText.antiAliasType = "advanced";
 				captionText.gridFitType = GridFitType.NONE;
@@ -632,7 +636,7 @@ package com.ICE
 				captionText.tabEnabled = true;
 				capBox.addChild(captionText);
 				//capBox.height = captionText.height;
-				capBox.visible = captionText.visible = true;
+				capBox.visible = captionText.visible = false;
 				videoContainer.addChild(capBox);
 				videoContainer.addChild(captionText);
 				
@@ -642,7 +646,7 @@ package com.ICE
 				if (showDescriptions == true)
 				{
 					toggleAudioDescription(new MouseEvent(MouseEvent.CLICK));
-					//my_FLVPlybkcap.showCaptions = true;
+					//capBox.visible = captionText.visible = false;
 				}
 				
 			}
@@ -767,6 +771,7 @@ package com.ICE
 				audioDescription.adOn.visible = false;
 				audioDescription.adOff.visible = true;
 				showDescriptions = true;
+				capBox.bg.alpha = 0;
 				capBox.visible = captionText.visible = true;
 
 				if (stage.displayState == StageDisplayState.NORMAL && capBox )
