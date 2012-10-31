@@ -15,7 +15,7 @@ package com.ICE.utils
 			var count:int = 0;
 			for (var varName:String in obj) 
 			{
-				trace(String(obj[varName]));
+				//trace(String(obj[varName]));
 				count++;
 			}
 			paramObj =  obj;

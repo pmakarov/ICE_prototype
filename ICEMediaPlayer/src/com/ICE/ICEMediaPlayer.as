@@ -19,6 +19,7 @@ package com.ICE
 	import flash.events.Event;
 	import flash.events.MouseEvent;
 	import flash.events.TimerEvent;
+	import flash.external.ExternalInterface;
 	import flash.geom.Rectangle;
 	import flash.media.Sound;
 	import flash.net.*;
@@ -28,6 +29,7 @@ package com.ICE
 	import flash.text.TextFormat;
 	import flash.ui.Mouse;
 	import flash.utils.Timer;
+	import flash.external.ExternalInterface;
 
 	/**
 	 * ...
@@ -78,6 +80,8 @@ package com.ICE
 		private var captionText:TextField;
 		public var caption:String;
 		public var captionURL:String;
+		private var hasEvents:Boolean;
+		private var eventsObject:Object;
 
 		
 		[SWF(width="640", height="390", frameRate="60", backgroundColor="#000000")]
@@ -402,7 +406,7 @@ package com.ICE
 			pbBG.y = mediaBG.y  - pbBG.height + 3;
 			pb.x = -6;
 			pb.y = mediaBG.y - pbBG.height + 4;
-			scrubber.x = pb.x + 5;
+			scrubber.x = pb.x;
 			scrubber.y = pb.y - 2;
 			timeText_mc.x = vol.x + vol.width + 6;
 			timeText_mc.y = mediaBG.y + timeText_mc.height / 2 - 2;
@@ -453,13 +457,52 @@ package com.ICE
 			
 			if (hasFlashVars)
 			{
+				if (FlashVarUtil.hasKey("plugins"))
+				{
+					//trace(FlashVarUtil.getValue("plugins"))
+					var tmp:Array = FlashVarUtil.getValue("plugins").split(",");
+					var rex:RegExp = /[\s\r\n]*/gim;
+					for (var i:int = 0; i < tmp.length; i++)
+					{
+						trace(tmp[i]);
+						switch(tmp[i].replace(rex,''))
+						{
+							case "audioDescriptions":
+								audioDescriptionURL = FlashVarUtil.getValue("audioDescriptions");
+								break;
+								
+							case "closedCaptions":
+								my_FLVPlybkcap.source = FlashVarUtil.getValue("closedCaptions.file");
+								showcaptions  = FlashVarUtil.getValue("closedCaptions.showCaptions") == "true" ? true : false;
+								break;
+								
+							case "CDN":
+								break;
+								
+								default:
+						}
+					}
+				}
 				if (FlashVarUtil.hasKey("src"))
 				{
 					videoPath = FlashVarUtil.getValue("src");
 					//tf.appendText("target source:" + videoPath + "\n");
 				}
+				if (FlashVarUtil.hasKey("events"))
+				{
+					hasEvents = FlashVarUtil.getValue("events") == "true" ? true : false;
+					if (hasEvents)
+					{
+						eventsObject = new Object();
+						eventsObject.onComplete = FlashVarUtil.getValue("events.onComplete");
+						eventsObject.onReady = FlashVarUtil.getValue("events.onPlayerReady");
+						eventsObject.onNotify = FlashVarUtil.getValue("events.onNotifyStatus");
+						eventsObject.initialized = true;
+					}
+				}
 				if (FlashVarUtil.hasKey("closedCaptions"))
 				{
+					//LegacySupport
 					//trace( FlashVarUtil.getValue("data"));
 					my_FLVPlybkcap.source = FlashVarUtil.getValue("closedCaptions");
 					
@@ -467,7 +510,7 @@ package com.ICE
 				if (FlashVarUtil.hasKey("width"))
 				{
 					vidWidth = parseInt(FlashVarUtil.getValue("width"));
-					tf.appendText("width:" + vidWidth + "\n");
+					//tf.appendText("width:" + vidWidth + "\n");
 				}
 				if (FlashVarUtil.hasKey("height"))
 				{
@@ -476,7 +519,7 @@ package com.ICE
 				if (FlashVarUtil.hasKey("autorun"))
 				{
 					autorun = FlashVarUtil.getValue("autorun") == "true" ? true : false;
-					trace(autorun);
+					//trace(autorun);
 				}
 				if (FlashVarUtil.hasKey("showcaptions") && FlashVarUtil.hasKey("closedCaptions"))
 				{
@@ -486,6 +529,7 @@ package com.ICE
 				}
 				if (FlashVarUtil.hasKey("showcaptions") && FlashVarUtil.hasKey("audioDescriptions"))
 				{
+					//legacy support
 					audioDescriptionURL = FlashVarUtil.getValue("audioDescriptions");
 				}
 			}
@@ -581,7 +625,7 @@ package com.ICE
 				//my_FLVPlybkcap.showCaptions = false;
 				if (showcaptions == true)
 				{
-					trace("here");
+					//trace("here");
 					toggleCaptioning(new MouseEvent(MouseEvent.CLICK));
 					//my_FLVPlybkcap.showCaptions = true;
 				}
@@ -590,7 +634,7 @@ package com.ICE
 			
 			if (audioDescriptionURL != "")
 			{
-				trace(audioDescriptionURL);
+				//trace(audioDescriptionURL);
 				audioDescription = new AudioDescription();
 				audioDescription.adOn.buttonMode = true;
 				audioDescription.adOff.buttonMode = true;
@@ -676,7 +720,7 @@ package com.ICE
 			videoControlsContainer.addChild(pb);
 			
 			scrubber = new ProgressScrubber();
-			scrubber.x = pb.x + 5;
+			scrubber.x = pb.x;
 			scrubber.y = pb.y - 2;
 			scrubber.name = "progressScrubber";
 			videoPlayBack.addEventListener(VideoEvent.COMPLETE, handleVideoComplete);
@@ -813,7 +857,7 @@ package com.ICE
 				captionButton.ccOn.visible = true;
 				my_FLVPlybkcap.showCaptions = false;
 				showcaptions = false;
-				trace(my_FLVPlybkcap.showCaptions + " : ?");
+				//trace(my_FLVPlybkcap.showCaptions + " : ?");
 				
 			}
 			else
@@ -868,7 +912,7 @@ package com.ICE
 			
 			videoPlayBack.pause();
 			videoPlayBack.seek(Math.floor((pbBG.mouseX / 15.75) * videoPlayBack.totalTime));
-			trace((pbBG.mouseX / 15.75) * videoPlayBack.totalTime);
+			//trace((pbBG.mouseX / 15.75) * videoPlayBack.totalTime);
 			videoPlayBack.play();
 		}
 		
@@ -954,7 +998,7 @@ package com.ICE
 				playPause.playb.visible = false;
 				videoPlayBack.play();
 			}
-			trace(my_FLVPlybkcap.showCaptions);
+			//trace(my_FLVPlybkcap.showCaptions);
 		}
 		public function progressHandler(e:VideoEvent):void 
 		{
@@ -1054,12 +1098,18 @@ package com.ICE
 		{
 			trace("video complete: " + videoPlayBack.playheadPercentage);
 			
-			videoPlayBack.autoRewind = true;
-			//add code to put back up the Play icon
+			//videoPlayBack.autoRewind = true;
 			togglePlayPauseButton(new MouseEvent(MouseEvent.CLICK));
 			pb.x = 8;
 			scrubber.x = pb.x + videoPlayBack.playheadTime * vidWidth / videoPlayBack.totalTime - 8;
-			
+			if (eventsObject != null)
+			{
+				trace(eventsObject.initialized);
+				if (eventsObject.initialized == true && ExternalInterface.available)
+				{
+					ExternalInterface.call(eventsObject.onComplete, "ASSET_COMPLETE");
+				}
+			}
 		}
 		
 		
@@ -1196,7 +1246,53 @@ package com.ICE
 				setVolume(vol);
 			}
 		
+			if (eventsObject != null)
+			{
+				//trace(e.target.currentCount % 100);
+				if (eventsObject.initialized == true && ExternalInterface.available && ((e.target.currentCount % 100) == 0 ) && videoPlayBack.playing )
+				{
+					ExternalInterface.call(eventsObject.onNotify, [videoPlayBack.playheadTime])
+				}
+			}
 		}
+		private function bindEventsToHost(obj:Object):void
+		{
+		if (ExternalInterface.available) {
+                try {
+                    trace("Adding callback...\n");
+                    ExternalInterface.addCallback("sendToActionScript", receivedFromJavaScript);
+                    if (checkJavaScriptReady()) {
+                       trace("JavaScript is ready.\n");
+                    } else {
+                        trace("JavaScript is not ready, creating timer.\n");
+                        var readyTimer:Timer = new Timer(100, 0);
+                        readyTimer.addEventListener(TimerEvent.TIMER, timerHandler2);
+                        readyTimer.start();
+                    }
+                } catch (error:SecurityError) {
+                    trace("A SecurityError occurred: " + error.message + "\n");
+                } catch (error:Error) {
+                    trace("An Error occurred: " + error.message + "\n");
+                }
+            } else {
+                trace("External interface is not available for this container.");
+            }
+		}
+		private function receivedFromJavaScript(value:String):void {
+            trace("JavaScript says: " + value + "\n");
+        }
+        private function checkJavaScriptReady():Boolean {
+            var isReady:Boolean = ExternalInterface.call("isReady");
+            return isReady;
+        }
+        private function timerHandler2(event:TimerEvent):void {
+            trace("Checking JavaScript status...\n");
+            var isReady:Boolean = checkJavaScriptReady();
+            if (isReady) {
+                trace("JavaScript is ready.\n");
+                Timer(event.target).stop();
+            }
+        }
 	}
 	
 }
